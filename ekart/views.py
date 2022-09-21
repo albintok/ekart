@@ -1,0 +1,53 @@
+from django.shortcuts import render
+from ekart.models import Catagories,Products
+from ekart.serializers import CategorySerializer,ProductSerializer
+from rest_framework.response import Response
+from rest_framework import permissions,authentication
+from rest_framework.viewsets import ModelViewSet,ViewSet
+from rest_framework.decorators import action
+# Create your views here.
+
+#localhost:8000/ekart/categories/
+class CategoryView(ModelViewSet):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    serializer_class = CategorySerializer
+    queryset = Catagories.objects.all()
+
+##localhost:8000/ekart/categories/{id}/add_product
+    @action(methods=["POST"],detail=True)
+    def add_product(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        cat=Catagories.objects.get(id=id)
+        serilizer=ProductSerializer(data=request.data,context={"category":cat})
+        if serilizer.is_valid():
+            serilizer.save()
+            return Response(data=serilizer.data)
+        else:
+            return Response(data=serilizer.errors)
+
+#localhost:8000/ekart/catagories/{id}/get_products
+    @action(methods=["GET"],detail=True)
+    def get_products(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        cat=Catagories.objects.get(id=id)
+        prdt=cat.products_set.all()
+        serializer=ProductSerializer(prdt,many=True)
+        return Response(data=serializer.data)
+
+#localhost:8000/ekart/products/
+
+class ProductView(ViewSet):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    def list(self,request,*args,**kwargs):
+        all_products=Products.objects.all()
+        serilaizer=ProductSerializer(all_products,many=True)
+        return Response(data=serilaizer.data)
+    def retrieve(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        prdt=Products.objects.get(id=id)
+        serializer=ProductSerializer(prdt,many=False)
+        return Response(data=serializer.data)
+
+
+
+
