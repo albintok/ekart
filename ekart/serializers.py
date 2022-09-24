@@ -1,4 +1,4 @@
-from ekart.models import Catagories,Products
+from ekart.models import Catagories,Products,Cart,Review
 from rest_framework import serializers
 
 
@@ -16,7 +16,34 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model=Products
         fields="__all__"
+    def validate_price(self,value):
+        if value not in range(50,50000):
+            raise serializers.ValidationError("invalid_price")
+        return value
     def create(self, validated_data):
         catagory=self.context.get("category")
         return Products.objects.create(**validated_data,catagory=catagory)
 
+class CartSerializer(serializers.ModelSerializer):
+    user=serializers.CharField(read_only=True)
+    product=ProductSerializer()
+    created_date=serializers.CharField(read_only=True)
+    status=serializers.CharField(read_only=True)
+    class Meta:
+        model=Cart
+        fields='__all__'
+    def create(self, validated_data):
+        user=self.context.get("user")
+        product=self.context.get("product")
+        return Cart.objects.create(**validated_data,user=user,product=product)
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user=serializers.CharField(read_only=True)
+    product=serializers.CharField(read_only=True)
+    class Meta:
+        model=Review
+        fields="__all__"
+    def create(self, validated_data):
+        user=self.context.get("user")
+        product=self.context.get("product")
+        return Review.objects.create(**validated_data,user=user,product=product)

@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from ekart.models import Catagories,Products
-from ekart.serializers import CategorySerializer,ProductSerializer
+from ekart.models import Catagories,Products,Cart
+from ekart.serializers import CategorySerializer,ProductSerializer,CartSerializer,ReviewSerializer
 from rest_framework.response import Response
 from rest_framework import permissions,authentication
 from rest_framework.viewsets import ModelViewSet,ViewSet
@@ -42,12 +42,47 @@ class ProductView(ViewSet):
         all_products=Products.objects.all()
         serilaizer=ProductSerializer(all_products,many=True)
         return Response(data=serilaizer.data)
+ # localhost:8000/ekart/products/{id}
+
     def retrieve(self,request,*args,**kwargs):
         id=kwargs.get("pk")
         prdt=Products.objects.get(id=id)
         serializer=ProductSerializer(prdt,many=False)
         return Response(data=serializer.data)
 
+# localhost:8000/ekart/products/{id}/add_cart
+    @action(methods=["post"],detail=True)
+    def add_cart(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        prdt=Products.objects.get(id=id)
+        user=request.user
+        serializer=CartSerializer(data=request.data,context={"user":user,"product":prdt})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data=serializer.data)
+        else:
+            return Response(data=serializer.errors)
+
+# localhost:8000/ekart/products/{id}/add_review
+    @action(methods=["POST"],detail=True)
+    def add_review(self,request,*args,**kwargs):
+        id=kwargs.get("pk")
+        prdt=Products.objects.get(id=id)
+        user=request.user
+        serializer=ReviewSerializer(data=request.data,context={"user":user,"product":prdt})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data=serializer.data)
+        else:
+            return Response(data=serializer.errors)
+
+
+class CartView(ModelViewSet):
+    serializer_class = CartSerializer
+    queryset = Cart.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        return Cart.objects.filter(user=self.request.user)
 
 
 
